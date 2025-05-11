@@ -1,5 +1,5 @@
 from commons import constants as CONSTS
-from machine import Pin, SPI
+from machine import Pin, SPI, ADC
 from time import sleep
 from nrf24l01 import NRF24L01 # type: ignore
 
@@ -11,6 +11,8 @@ MISO_PIN = Pin(16)
 
 BUILD_IN_LED_PIN = Pin(25, Pin.OUT)
 
+READ_PIN = Pin(28, Pin.IN)
+adc_x1 = ADC(READ_PIN)
 nrf_module = None
 
 def powerOnLed():
@@ -33,16 +35,22 @@ def startupSetup():
 
 def sendData(msg):
     global nrf_module
-    nrf_module.send(msg)
-    print("Sending data:", msg)
-    sleep(0.001)
+    buf = bytearray(CONSTS.PAYLOAD_SIZE)
+    x1 = adc_x1.read_u16() >> 8  # 0-255
+    buf[0] = x1
+    buf[1] = 172
 
+    nrf_module.send(buf)
+    #print("Sending data:", buf)
+    #print("Sent:", buf[0], buf[1])
+    sleep(0.001)
+    #sleep(0.01) 
     
 powerOnLed()
 startupSetup()
 
 while True:
     try:
-        sendData(b'Hello')
+        sendData(128)
     except OSError as e:
         print("Error:", e)

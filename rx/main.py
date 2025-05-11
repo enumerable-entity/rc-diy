@@ -31,6 +31,6 @@ while True:
       
     # Перевірка кожну секунду
     if ticks_diff(ticks_ms(), last_time) >= 1000:
-        print("Пакетів за секунду:", packet_count_per_sec)
+        print("Packets per sec:", packet_count_per_sec)
         packet_count_per_sec = 0
         last_time = ticks_ms()

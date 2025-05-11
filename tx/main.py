@@ -1,25 +1,48 @@
+from commons import constants as CONSTS
 from machine import Pin, SPI
 from time import sleep
 from nrf24l01 import NRF24L01 # type: ignore
 
-# SPI pins
-spi = SPI(0, sck=Pin(18), mosi=Pin(19), miso=Pin(16))
-csn = Pin(17, Pin.OUT)
-ce = Pin(20, Pin.OUT)
-led = Pin(25, Pin.OUT)
-nrf = NRF24L01(spi, csn, ce, channel=100, payload_size=5)
-# Set speed 2 Mbps
-nrf.reg_write(0x06, 0b00001010)
+CSN_PIN = Pin(17, Pin.OUT)
+CE_PIN = Pin(20, Pin.OUT)
+SCK_PIN = Pin(18)
+MOSI_PIN = Pin(19)
+MISO_PIN = Pin(16)
 
-# Disable ACK
-nrf.reg_write(0x01, 0b00000000)
+BUILD_IN_LED_PIN = Pin(25, Pin.OUT)
 
-nrf.open_tx_pipe(b'1Node')
+nrf_module = None
+
+def powerOnLed():
+    BUILD_IN_LED_PIN.value(1) 
+    sleep(0.5)  
+    BUILD_IN_LED_PIN.value(0) 
+
+def startupSetup():
+    global nrf_module
+    print("Setting up NRF24L01 module...")
+    NRF_SPI_BUS = SPI(0, sck=SCK_PIN, mosi=MOSI_PIN, miso=MISO_PIN)
+    nrf_module = NRF24L01(NRF_SPI_BUS, CSN_PIN, CE_PIN, channel=CONSTS.CHANNEL, payload_size=CONSTS.PAYLOAD_SIZE)
+   
+    nrf_module.reg_write(CONSTS.TRANSM_SPEED_REG, CONSTS.SPEED)
+    nrf_module.reg_write(CONSTS.ACK_ENABLED_REG, CONSTS.ACK_ENABLED_VALUE)
+
+    nrf_module.open_tx_pipe(CONSTS.TX_RX_PIPE)
+    print("NRF24L01 module setup complete. Ready to send data.")
+
+
+def sendData(msg):
+    global nrf_module
+    nrf_module.send(msg)
+    print("Sending data:", msg)
+    sleep(0.001)
+
+    
+powerOnLed()
+startupSetup()
 
 while True:
     try:
-        nrf.send(b'Hello')
-        print("Sending Hello")
-        sleep(0.001)
+        sendData(b'Hello')
     except OSError as e:
         print("Error:", e)
